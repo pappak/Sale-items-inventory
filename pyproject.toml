@@ -1,0 +1,33 @@
+[project]
+name = "inventory-listing-generator"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Eldon", email = "eldon@local" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "alembic>=1.19.0",
+    "fastapi>=0.141.1",
+    "openai>=2.53.0",
+    "pg8000>=1.31.5",
+    "pillow>=12.3.0",
+    "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.32",
+    "sqlalchemy>=2.0.51",
+    "uvicorn[standard]>=0.52.1",
+    "reportlab>=4.4.1",
+]
+
+[project.scripts]
+inventory-listing-generator = "inventory_listing_generator:main"
+
+[project.optional-dependencies]
+dev = [
+    "psycopg2-binary>=2.9.12",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
