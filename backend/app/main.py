@@ -48,6 +48,22 @@ def create_app() -> FastAPI:
     app.include_router(export.router, prefix="/api")
     app.include_router(share.public_router)
 
+    @app.get("/api/health")
+    def health():
+        import os
+        from sqlalchemy import text
+        status = {"status": "ok", "db": None, "error": None}
+        try:
+            from backend.app.database import get_engine
+            with get_engine().connect() as conn:
+                conn.execute(text("SELECT 1"))
+            status["db"] = "connected"
+        except Exception as e:
+            status["db"] = "failed"
+            status["error"] = str(e)
+            status["status"] = "degraded"
+        return status
+
     # Uploads — create dir if missing so StaticFiles doesn't crash
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
