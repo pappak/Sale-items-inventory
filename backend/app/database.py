@@ -1,6 +1,6 @@
 import os
 import ssl
-from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
+from urllib.parse import urlparse, parse_qs
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -11,29 +11,49 @@ _engine = None
 _SessionLocal = None
 
 
-def _build_url(raw: str) -> str:
-    """Rewrite URL scheme for pg8000 and strip sslmode (handled via connect_args)."""
-    raw = raw.replace("postgresql://", "postgresql+pg8000://", 1)
-    raw = raw.replace("postgres://", "postgresql+pg8000://", 1)
-    parsed = urlparse(raw)
-    # Remove sslmode — pg8000 uses ssl_context in connect_args instead
-    params = {k: v[0] for k, v in parse_qs(parsed.query).items() if k != "sslmode"}
-    return urlunparse(parsed._replace(query=urlencode(params)))
-
-
 def get_engine():
     global _engine
     if _engine is None:
-        raw_url = os.environ.get("DBB7196801_DATABASE_URL") or os.environ.get("DBB7196801_DIRECT_URL")
+        raw_url = (
+            os.environ.get("DBB7196801_DATABASE_URL")
+            or os.environ.get("DBB7196801_DIRECT_URL")
+        )
         if not raw_url:
             raise RuntimeError("DBB7196801_DATABASE_URL environment variable is not set")
 
-        url = _build_url(raw_url)
+        # Normalise to postgresql:// for urlparse
+        url = raw_url
+        for prefix in ("postgresql+pg8000://", "postgres://"):
+            if url.startswith(prefix):
+                url = "postgresql://" + url[len(prefix):]
+                break
+
+        parsed = urlparse(url)
+        host     = parsed.hostname
+        port     = parsed.port or 5432
+        database = parsed.path.lstrip("/").split("?")[0]
+        user     = parsed.username
+        password = parsed.password
+
         ssl_ctx = ssl.create_default_context()
 
+        import pg8000.dbapi
+
+        def creator():
+            """Directly call pg8000 — bypasses SQLAlchemy's channel_binding injection."""
+            return pg8000.dbapi.connect(
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password,
+                ssl_context=ssl_ctx,
+                timeout=10,
+            )
+
         _engine = create_engine(
-            url,
-            connect_args={"timeout": 10, "ssl_context": ssl_ctx},
+            "postgresql+pg8000://",
+            creator=creator,
             pool_pre_ping=True,
             pool_timeout=15,
         )
