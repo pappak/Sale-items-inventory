@@ -1,4 +1,5 @@
 import os
+import ssl
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -13,15 +14,20 @@ _SessionLocal = None
 def get_engine():
     global _engine
     if _engine is None:
-        url = os.environ.get("DBB7196801_DATABASE_URL")
+        url = os.environ.get("DBB7196801_DATABASE_URL") or os.environ.get("DBB7196801_DIRECT_URL")
         if not url:
             raise RuntimeError("DBB7196801_DATABASE_URL environment variable is not set")
+
         # Rewrite scheme so SQLAlchemy uses pg8000 (pure Python, no C deps)
         url = url.replace("postgresql://", "postgresql+pg8000://", 1)
         url = url.replace("postgres://", "postgresql+pg8000://", 1)
+
+        # pg8000 requires SSL via connect_args, not URL params
+        ssl_context = ssl.create_default_context()
+
         _engine = create_engine(
             url,
-            connect_args={"timeout": 10},  # 10s connection timeout
+            connect_args={"timeout": 10, "ssl_context": ssl_context},
             pool_pre_ping=True,
             pool_timeout=15,
         )
