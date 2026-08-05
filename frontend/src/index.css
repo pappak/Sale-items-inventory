@@ -41,7 +41,7 @@
   /* Darken teal so it's readable on light backgrounds */
   --color-teal-500: #0f766e;
   --color-teal-400: #0d9488;
-  --color-teal-300: #14b8a6;
+  --color-teal-300: #0c6259;
   --color-teal-600: #134e4a;
 }
 
@@ -102,6 +102,22 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+
+  /* ── Theme-aware badge colours ───────────────────────────────────────── */
+  .badge-sky     { background: rgb(14 165 233 / .15); color: #7dd3fc; border-color: rgb(14 165 233 / .35); }
+  .badge-emerald { background: rgb(16 185 129 / .15); color: #6ee7b7; border-color: rgb(16 185 129 / .35); }
+  .badge-violet  { background: rgb(139 92 246 / .15); color: #c4b5fd; border-color: rgb(139 92 246 / .35); }
+  .badge-amber   { background: rgb(245 158 11 / .15); color: #fcd34d; border-color: rgb(245 158 11 / .35); }
+  .badge-rose    { background: rgb(244 63 94 / .15);  color: #fda4af; border-color: rgb(244 63 94  / .35); }
+  .badge-neutral { background: rgb(75 84 104 / .25);  color: #9aa3b5; border-color: rgb(75 84 104 / .35); }
+
+  [data-theme="light"] .badge-sky     { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
+  [data-theme="light"] .badge-emerald { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+  [data-theme="light"] .badge-violet  { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+  [data-theme="light"] .badge-amber   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  [data-theme="light"] .badge-rose    { background: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+  [data-theme="light"] .badge-neutral { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+  /* ───────────────────────────────────────────────────────────────────── */
 
   /* Subtle grain texture overlay for depth */
   .grain::before {
