@@ -1,0 +1,27 @@
+[
+  {
+    "content": "[p1-1] Project scaffold: uv init, FastAPI, SQLAlchemy, Alembic, all deps",
+    "id": "1",
+    "status": "completed"
+  },
+  {
+    "content": "[p1-2] DB models (items, item_photos, share_links) + Alembic migration",
+    "id": "2",
+    "status": "completed"
+  },
+  {
+    "content": "[p2-3] Backend: CRUD + photo upload + AI description + share + PDF endpoints",
+    "id": "3",
+    "status": "completed"
+  },
+  {
+    "content": "[p4-4] Frontend: React/Vite/Tailwind — admin UI + public share view",
+    "id": "4",
+    "status": "completed"
+  },
+  {
+    "content": "[p5-5] Publish config + end-to-end smoke test",
+    "id": "5",
+    "status": "completed"
+  }
+]
