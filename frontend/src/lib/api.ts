@@ -138,6 +138,21 @@ export function useDeletePhoto(id: string) {
   })
 }
 
+export function useReorderPhotos(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (photoIds: string[]) =>
+      request<{ ok: boolean }>(`/items/${id}/photos/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(photoIds),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['item', id] })
+    },
+  })
+}
+
 /* ---------- AI Description ---------- */
 
 export function useGenerateDescription(id: string) {

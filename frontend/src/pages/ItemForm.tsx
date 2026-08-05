@@ -6,6 +6,7 @@ import {
   useUpdateItem,
   useUploadPhotos,
   useDeletePhoto,
+  useReorderPhotos,
   useGenerateDescription,
   suggestCategory,
 } from '../lib/api'
@@ -71,6 +72,7 @@ export function ItemForm() {
   const updateItem = useUpdateItem(id!)
   const uploadPhotos = useUploadPhotos(id!)
   const deletePhoto = useDeletePhoto(id!)
+  const reorderPhotos = useReorderPhotos(id!)
   const generateDescription = useGenerateDescription(id!)
 
   const [form, setForm] = useState<FormData>(emptyForm)
@@ -78,6 +80,8 @@ export function ItemForm() {
   const [categoryLoading, setCategoryLoading] = useState(false)
   const [clarifyQuestions, setClarifyQuestions] = useState<string[]>([])
   const [clarifyAnswers, setClarifyAnswers] = useState<string[]>([])
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
+  const dragSrcIdx = useRef<number | null>(null)
 
   useEffect(() => {
     if (isEdit && existingItem && !loaded) {
@@ -543,12 +547,32 @@ export function ItemForm() {
               {sortedPhotos.map((photo, idx) => (
                 <div
                   key={photo.id}
-                  className="group relative aspect-square overflow-hidden rounded-lg border border-ink-700 bg-ink-900"
+                  draggable
+                  onDragStart={() => { dragSrcIdx.current = idx }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx) }}
+                  onDragLeave={() => setDragOverIdx(null)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragOverIdx(null)
+                    const src = dragSrcIdx.current
+                    if (src === null || src === idx) return
+                    const reordered = [...sortedPhotos]
+                    const [moved] = reordered.splice(src, 1)
+                    reordered.splice(idx, 0, moved)
+                    reorderPhotos.mutate(reordered.map(p => p.id))
+                    dragSrcIdx.current = null
+                  }}
+                  onDragEnd={() => { dragSrcIdx.current = null; setDragOverIdx(null) }}
+                  className={`group relative aspect-square overflow-hidden rounded-lg border bg-ink-900 cursor-grab active:cursor-grabbing transition-all ${
+                    dragOverIdx === idx
+                      ? 'border-teal-400 scale-105 shadow-lg shadow-teal-500/20'
+                      : 'border-ink-700'
+                  }`}
                 >
                   <img
                     src={photo.url}
                     alt={photo.filename}
-                    className="size-full object-cover"
+                    className="size-full object-cover pointer-events-none"
                     loading="lazy"
                   />
                   {idx === 0 && (
@@ -557,6 +581,9 @@ export function ItemForm() {
                       Primary
                     </div>
                   )}
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-1.5 py-1 bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] text-ink-400 select-none">⠿ drag to reorder</span>
+                  </div>
                   <button
                     onClick={() => handleDeletePhoto(photo.id)}
                     disabled={deletePhoto.isPending}

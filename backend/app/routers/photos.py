@@ -2,7 +2,7 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Body
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -82,3 +82,19 @@ def delete_photo(item_id: str, photo_id: str, db: Session = Depends(get_db)):
     db.delete(photo)
     db.commit()
     return None
+
+
+@router.put("/{item_id}/photos/reorder")
+def reorder_photos(
+    item_id: str,
+    photo_ids: List[str] = Body(..., embed=False),
+    db: Session = Depends(get_db),
+):
+    """Accepts an ordered list of photo IDs and updates sort_order accordingly."""
+    for idx, photo_id in enumerate(photo_ids):
+        db.query(ItemPhoto).filter(
+            ItemPhoto.id == photo_id,
+            ItemPhoto.item_id == item_id,
+        ).update({"sort_order": idx})
+    db.commit()
+    return {"ok": True}
