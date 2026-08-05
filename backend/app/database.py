@@ -19,7 +19,12 @@ def get_engine():
         # Rewrite scheme so SQLAlchemy uses pg8000 (pure Python, no C deps)
         url = url.replace("postgresql://", "postgresql+pg8000://", 1)
         url = url.replace("postgres://", "postgresql+pg8000://", 1)
-        _engine = create_engine(url)
+        _engine = create_engine(
+            url,
+            connect_args={"timeout": 10},  # 10s connection timeout
+            pool_pre_ping=True,
+            pool_timeout=15,
+        )
     return _engine
 
 

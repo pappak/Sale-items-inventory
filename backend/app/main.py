@@ -14,9 +14,13 @@ FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
 
 
 def init_db():
-    from backend.app.database import get_engine, Base
-    from backend.app.models import models  # noqa: ensure models are registered
-    Base.metadata.create_all(bind=get_engine())
+    try:
+        from backend.app.database import get_engine, Base
+        from backend.app.models import models  # noqa: ensure models are registered
+        Base.metadata.create_all(bind=get_engine())
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"DB init skipped: {e}")
 
 
 @asynccontextmanager
