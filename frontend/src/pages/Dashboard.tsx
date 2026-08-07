@@ -264,7 +264,7 @@ export function Dashboard() {
               <LayoutGrid className="size-3.5" />
               Total Items
             </div>
-            <p className="text-2xl font-bold text-ink-100">{stats.total}</p>
+            <p className="text-2xl font-bold text-blue-400">{stats.total}</p>
             <p className="text-xs text-ink-500 mt-0.5">{stats.categories} categor{stats.categories === 1 ? 'y' : 'ies'}</p>
           </div>
 
@@ -273,7 +273,7 @@ export function Dashboard() {
               <Clock className="size-3.5" />
               Available
             </div>
-            <p className="text-2xl font-bold text-ink-100">{stats.available}</p>
+            <p className="text-2xl font-bold text-teal-300">{stats.available}</p>
             <p className="text-xs text-ink-500 mt-0.5">{formatCurrency(stats.totalAsking)} asking</p>
           </div>
 
@@ -282,7 +282,7 @@ export function Dashboard() {
               <CheckCircle2 className="size-3.5" />
               Sold
             </div>
-            <p className="text-2xl font-bold text-ink-100">{stats.sold}</p>
+            <p className="text-2xl font-bold text-rose-400">{stats.sold}</p>
             <p className="text-xs text-ink-500 mt-0.5">{formatCurrency(stats.totalSoldValue)} total</p>
           </div>
 
@@ -291,27 +291,33 @@ export function Dashboard() {
               <DollarSign className="size-3.5" />
               Est. Value
             </div>
-            <p className="text-2xl font-bold text-ink-100">{formatCurrency(stats.totalEstimated)}</p>
+            <p className="text-2xl font-bold text-violet-400">{formatCurrency(stats.totalEstimated)}</p>
             <p className="text-xs text-ink-500 mt-0.5">across all items</p>
           </div>
 
-          <div className="rounded-xl border border-ink-700 bg-ink-800 p-4">
+          <div className={`rounded-xl border p-4 transition-all duration-300 ${
+            selectedIds.size > 0
+              ? 'border-teal-500/60 bg-teal-500/10 shadow-lg shadow-teal-500/10'
+              : 'border-ink-700 bg-ink-800'
+          }`}>
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider">
+              <div className={`flex items-center gap-2 text-xs font-medium uppercase tracking-wider transition-colors ${selectedIds.size > 0 ? 'text-teal-400' : 'text-ink-400'}`}>
                 <Tag className="size-3.5" />
                 Asking Price
               </div>
               {selectedIds.size > 0 && (
                 <button
                   onClick={() => setSelectedIds(new Set())}
-                  className="text-[10px] font-medium text-ink-400 hover:text-rose-400 transition-colors"
+                  className="text-[10px] font-medium text-teal-500/60 hover:text-rose-400 transition-colors"
                 >
                   ✕ Clear
                 </button>
               )}
             </div>
-            <p className="text-2xl font-bold text-ink-100">{formatCurrency(filteredAsking)}</p>
-            <p className="text-xs text-ink-500 mt-0.5">
+            <p className={`text-2xl font-bold transition-colors duration-300 ${selectedIds.size > 0 ? 'text-teal-300' : 'text-sky-300'}`}>
+              {formatCurrency(filteredAsking)}
+            </p>
+            <p className={`text-xs mt-0.5 transition-colors ${selectedIds.size > 0 ? 'text-teal-500' : 'text-ink-500'}`}>
               {selectedIds.size > 0 ? `${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'} selected` : activeTab === 'All' ? 'asking price total' : `${activeTab} total`}
             </p>
           </div>
