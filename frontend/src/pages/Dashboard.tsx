@@ -151,42 +151,42 @@ function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast, selec
                 {selected ? 'Selected' : 'Select'}
               </button>
             )}
-          {authed && (
-            <div className="flex gap-1.5">
-              <button
-                onClick={handleToggleSold}
-                disabled={toggleSold.isPending}
-                title={item.is_sold ? 'Mark as available' : 'Mark as sold'}
-                className={`flex size-9 items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
-                  item.is_sold
-                    ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30'
-                    : 'bg-ink-800 text-ink-300 hover:bg-rose-500/15 hover:text-rose-400'
-                }`}
-                aria-label={item.is_sold ? 'Mark as available' : 'Mark as sold'}
-              >
-                {toggleSold.isPending ? <Spinner className="size-4" /> : <Tag className="size-4" />}
-              </button>
-              <Link
-                to={`/items/${item.id}/edit`}
-                className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-50 transition-colors"
-                aria-label={`Edit ${item.title}`}
-              >
-                <Pencil className="size-4" />
-              </Link>
-              <button
-                onClick={() => onDelete(item.id, item.title)}
-                disabled={deleteItem.isPending}
-                className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-rose-500/15 hover:text-rose-400 transition-colors disabled:opacity-50"
-                aria-label={`Delete ${item.title}`}
-              >
-                {deleteItem.isPending && deleteItem.variables === item.id ? (
-                  <Spinner className="size-4" />
-                ) : (
-                  <Trash2 className="size-4" />
-                )}
-              </button>
-            </div>
-          )}
+            {authed && (
+              <div className="flex gap-1.5">
+                <button
+                  onClick={handleToggleSold}
+                  disabled={toggleSold.isPending}
+                  title={item.is_sold ? 'Mark as available' : 'Mark as sold'}
+                  className={`flex size-9 items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
+                    item.is_sold
+                      ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30'
+                      : 'bg-ink-800 text-ink-300 hover:bg-rose-500/15 hover:text-rose-400'
+                  }`}
+                  aria-label={item.is_sold ? 'Mark as available' : 'Mark as sold'}
+                >
+                  {toggleSold.isPending ? <Spinner className="size-4" /> : <Tag className="size-4" />}
+                </button>
+                <Link
+                  to={`/items/${item.id}/edit`}
+                  className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-50 transition-colors"
+                  aria-label={`Edit ${item.title}`}
+                >
+                  <Pencil className="size-4" />
+                </Link>
+                <button
+                  onClick={() => onDelete(item.id, item.title)}
+                  disabled={deleteItem.isPending}
+                  className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-rose-500/15 hover:text-rose-400 transition-colors disabled:opacity-50"
+                  aria-label={`Delete ${item.title}`}
+                >
+                  {deleteItem.isPending && deleteItem.variables === item.id ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <Trash2 className="size-4" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
