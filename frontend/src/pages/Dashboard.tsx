@@ -314,7 +314,7 @@ export function Dashboard() {
                 </button>
               )}
             </div>
-            <p className={`text-2xl font-bold transition-colors duration-300 ${selectedIds.size > 0 ? 'text-teal-300' : 'text-sky-300'}`}>
+            <p className={`text-2xl font-bold transition-colors duration-300 ${selectedIds.size > 0 ? 'text-teal-300' : 'text-green-400'}`}>
               {formatCurrency(filteredAsking)}
             </p>
             <p className={`text-xs mt-0.5 transition-colors ${selectedIds.size > 0 ? 'text-teal-500' : 'text-ink-500'}`}>
