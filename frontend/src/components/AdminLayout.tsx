@@ -23,9 +23,12 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               <img
                 src="/catalogia-logo.png"
                 alt="Catalogia"
-                className="w-[100px] h-auto object-contain"
+                className="w-[80px] h-auto object-contain"
               />
             </Link>
+            <span className="text-[10px] font-mono text-ink-500 border border-ink-700 rounded px-1.5 py-0.5 leading-none">
+              v{__APP_VERSION__} [Build {__BUILD_NUMBER__}]
+            </span>
 
             <nav className="flex items-center gap-1">
               {navItems.map((item) => {
