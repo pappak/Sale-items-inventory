@@ -223,54 +223,49 @@ export function Dashboard() {
       {/* Stats panel */}
       {!isLoading && (allItems?.length ?? 0) > 0 && (
         <div className="mb-8 grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {/* Total Items — pastel blue */}
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <div className="flex items-center gap-2 text-blue-500 text-xs font-medium uppercase tracking-wider mb-2">
+          <div className="rounded-xl border border-ink-700 bg-ink-800 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
               <LayoutGrid className="size-3.5" />
               Total Items
             </div>
-            <p className="text-2xl font-bold text-blue-700">{stats.total}</p>
-            <p className="text-xs text-blue-400 mt-0.5">{stats.categories} categor{stats.categories === 1 ? 'y' : 'ies'}</p>
+            <p className="text-2xl font-bold text-ink-100">{stats.total}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{stats.categories} categor{stats.categories === 1 ? 'y' : 'ies'}</p>
           </div>
 
-          {/* Available — pastel green */}
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-            <div className="flex items-center gap-2 text-emerald-500 text-xs font-medium uppercase tracking-wider mb-2">
+          <div className="rounded-xl border border-ink-700 bg-ink-800 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
               <Clock className="size-3.5" />
               Available
             </div>
-            <p className="text-2xl font-bold text-emerald-700">{stats.available}</p>
-            <p className="text-xs text-emerald-400 mt-0.5">{formatCurrency(stats.totalAsking)} asking</p>
+            <p className="text-2xl font-bold text-ink-100">{stats.available}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{formatCurrency(stats.totalAsking)} asking</p>
           </div>
 
-          {/* Sold — pastel rose */}
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
-            <div className="flex items-center gap-2 text-rose-400 text-xs font-medium uppercase tracking-wider mb-2">
+          <div className="rounded-xl border border-ink-700 bg-ink-800 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
               <CheckCircle2 className="size-3.5" />
               Sold
             </div>
-            <p className="text-2xl font-bold text-rose-600">{stats.sold}</p>
-            <p className="text-xs text-rose-400 mt-0.5">{formatCurrency(stats.totalSoldValue)} total</p>
+            <p className="text-2xl font-bold text-ink-100">{stats.sold}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{formatCurrency(stats.totalSoldValue)} total</p>
           </div>
 
-          {/* Est. Value — pastel purple */}
-          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
-            <div className="flex items-center gap-2 text-violet-500 text-xs font-medium uppercase tracking-wider mb-2">
+          <div className="rounded-xl border border-ink-700 bg-ink-800 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
               <DollarSign className="size-3.5" />
               Est. Value
             </div>
-            <p className="text-2xl font-bold text-violet-700">{formatCurrency(stats.totalEstimated)}</p>
-            <p className="text-xs text-violet-400 mt-0.5">across all items</p>
+            <p className="text-2xl font-bold text-ink-100">{formatCurrency(stats.totalEstimated)}</p>
+            <p className="text-xs text-ink-500 mt-0.5">across all items</p>
           </div>
 
-          {/* Asking Price — pastel amber */}
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <div className="flex items-center gap-2 text-amber-500 text-xs font-medium uppercase tracking-wider mb-2">
+          <div className="rounded-xl border border-ink-700 bg-ink-800 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
               <Tag className="size-3.5" />
               Asking Price
             </div>
-            <p className="text-2xl font-bold text-amber-700">{formatCurrency(filteredAsking)}</p>
-            <p className="text-xs text-amber-400 mt-0.5">
+            <p className="text-2xl font-bold text-ink-100">{formatCurrency(filteredAsking)}</p>
+            <p className="text-xs text-ink-500 mt-0.5">
               {activeTab === 'All' ? 'asking price total' : `${activeTab} total`}
             </p>
           </div>
