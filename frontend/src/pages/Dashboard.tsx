@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast'
 import { CategoryBadge, ConditionBadge } from '../components/Badges'
 import { SkeletonCard, EmptyState, Spinner } from '../components/ui'
 import { formatCurrency, primaryPhoto } from '../lib/format'
-import { Package, Pencil, Trash2, Plus, Tag, DollarSign, CheckCircle2, Clock, LayoutGrid } from 'lucide-react'
+import { Package, Pencil, Trash2, Plus, Tag, DollarSign, CheckCircle2, Clock, LayoutGrid, CheckSquare, Square } from 'lucide-react'
 import type { Item } from '../types'
 
 interface ItemCardProps {
@@ -17,9 +17,11 @@ interface ItemCardProps {
   deleteItem: ReturnType<typeof useDeleteItem>
   onDelete: (id: string, title: string) => void
   toast: ReturnType<typeof useToast>
+  selected: boolean
+  onSelect: (id: string) => void
 }
 
-function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast }: ItemCardProps) {
+function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast, selected, onSelect }: ItemCardProps) {
   const toggleSold = useToggleSold(item.id)
 
   const handleToggleSold = () => {
@@ -32,7 +34,11 @@ function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast }: Ite
 
   return (
     <div
-      className="group animate-fade-in-up rounded-2xl border border-ink-800 bg-ink-850 overflow-hidden hover:border-ink-600 transition-all hover:shadow-xl hover:shadow-black/30"
+      className={`group animate-fade-in-up rounded-2xl border overflow-hidden transition-all hover:shadow-xl hover:shadow-black/30 ${
+        selected
+          ? 'border-teal-400 bg-ink-850 shadow-lg shadow-teal-500/10'
+          : 'border-ink-800 bg-ink-850 hover:border-ink-600'
+      }`}
       style={{ animationDelay: `${Math.min(idx * 40, 300)}ms` }}
     >
       {/* Photo with SOLD ribbon */}
@@ -120,7 +126,7 @@ function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast }: Ite
           )}
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-3">
           <div>
             <p className="text-[10px] uppercase tracking-wider text-ink-500 font-medium mb-0.5">
               {item.is_sold ? 'Sold for' : 'Asking'}
@@ -129,6 +135,22 @@ function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast }: Ite
               {formatCurrency(item.asking_price)}
             </p>
           </div>
+          <div className="flex items-center gap-1.5">
+            {/* Select toggle */}
+            {!item.is_sold && (
+              <button
+                onClick={() => onSelect(item.id)}
+                title={selected ? 'Deselect' : 'Select for price total'}
+                className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                  selected
+                    ? 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/40'
+                    : 'bg-ink-800 text-ink-400 hover:bg-ink-700 hover:text-ink-100'
+                }`}
+              >
+                {selected ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
+                {selected ? 'Selected' : 'Select'}
+              </button>
+            )}
           {authed && (
             <div className="flex gap-1.5">
               <button
@@ -165,6 +187,7 @@ function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast }: Ite
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
@@ -174,6 +197,7 @@ function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast }: Ite
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<string>('All')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { authed } = useAuth()
   // Always fetch all items; filter + derive tabs client-side
   const { data: allItems, isLoading, isError } = useItems()
@@ -213,10 +237,22 @@ export function Dashboard() {
     return { total: all.length, available: available.length, sold: sold.length, totalAsking, totalEstimated, totalSoldValue, categories }
   }, [allItems])
 
-  // Asking price for currently visible (filtered) items
+  // Asking price — uses selected items if any are selected, otherwise all visible
   const filteredAsking = useMemo(() => {
+    if (selectedIds.size > 0) {
+      return (allItems ?? []).filter(i => selectedIds.has(i.id) && !i.is_sold)
+        .reduce((sum, i) => sum + (i.asking_price ?? 0), 0)
+    }
     return items.filter(i => !i.is_sold).reduce((sum, i) => sum + (i.asking_price ?? 0), 0)
-  }, [items])
+  }, [items, allItems, selectedIds])
+
+  const handleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   return (
     <div className="animate-fade-in">
@@ -266,7 +302,7 @@ export function Dashboard() {
             </div>
             <p className="text-2xl font-bold text-ink-100">{formatCurrency(filteredAsking)}</p>
             <p className="text-xs text-ink-500 mt-0.5">
-              {activeTab === 'All' ? 'asking price total' : `${activeTab} total`}
+              {selectedIds.size > 0 ? `${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'} selected` : activeTab === 'All' ? 'asking price total' : `${activeTab} total`}
             </p>
           </div>
         </div>
@@ -316,6 +352,8 @@ export function Dashboard() {
                 deleteItem={deleteItem}
                 onDelete={handleDelete}
                 toast={toast}
+                selected={selectedIds.has(item.id)}
+                onSelect={handleSelect}
               />
             )
           })}
