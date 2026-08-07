@@ -296,9 +296,19 @@ export function Dashboard() {
           </div>
 
           <div className="rounded-xl border border-ink-700 bg-ink-800 p-4">
-            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
-              <Tag className="size-3.5" />
-              Asking Price
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider">
+                <Tag className="size-3.5" />
+                Asking Price
+              </div>
+              {selectedIds.size > 0 && (
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="text-[10px] font-medium text-ink-400 hover:text-rose-400 transition-colors"
+                >
+                  ✕ Clear
+                </button>
+              )}
             </div>
             <p className="text-2xl font-bold text-ink-100">{formatCurrency(filteredAsking)}</p>
             <p className="text-xs text-ink-500 mt-0.5">
