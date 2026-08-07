@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models.models import Item, ItemPhoto, ShareLink
+from backend.app.routers.auth import require_admin
 
 router = APIRouter(prefix="/share-links", tags=["share"])
 
@@ -61,12 +62,12 @@ class ItemOut(BaseModel):
 
 
 @router.get("", response_model=List[ShareLinkOut])
-def list_share_links(db: Session = Depends(get_db)):
+def list_share_links(db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     return db.query(ShareLink).order_by(ShareLink.created_at.desc()).all()
 
 
 @router.post("", response_model=ShareLinkOut, status_code=201)
-def create_share_link(body: ShareLinkCreate, db: Session = Depends(get_db)):
+def create_share_link(body: ShareLinkCreate, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     link = ShareLink(**body.model_dump())
     db.add(link)
     db.commit()
@@ -75,7 +76,7 @@ def create_share_link(body: ShareLinkCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{link_id}", status_code=204)
-def delete_share_link(link_id: str, db: Session = Depends(get_db)):
+def delete_share_link(link_id: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     link = db.query(ShareLink).filter(ShareLink.id == link_id).first()
     if not link:
         raise HTTPException(status_code=404, detail="Share link not found")

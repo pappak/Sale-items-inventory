@@ -44,7 +44,13 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = os.environ.get("DBB7196801_DIRECT_URL", config.get_main_option("sqlalchemy.url"))
+    # Find any *_DIRECT_URL env var (flexible prefix)
+    url = None
+    for key, val in sorted(os.environ.items()):
+        if key.endswith("_DIRECT_URL"):
+            url = val
+            break
+    url = url or config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -63,7 +69,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    url = os.environ.get("DBB7196801_DIRECT_URL")
+    # Find any *_DIRECT_URL env var (flexible prefix)
+    url = None
+    for key, val in sorted(os.environ.items()):
+        if key.endswith("_DIRECT_URL"):
+            url = val
+            break
     if url:
         connectable = create_engine(url, poolclass=pool.NullPool)
     else:

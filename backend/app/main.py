@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.app.routers import items, photos, ai, share, export
+from backend.app.routers import items, photos, ai, share, export, auth
 
 # Resolve absolute paths relative to this file so they work regardless of cwd
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -46,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(ai.router, prefix="/api")
     app.include_router(share.router, prefix="/api")
     app.include_router(export.router, prefix="/api")
+    app.include_router(auth.router, prefix="/api")
     app.include_router(share.public_router)
 
     @app.get("/api/health")
@@ -64,9 +65,18 @@ def create_app() -> FastAPI:
             status["status"] = "degraded"
         return status
 
-    # Uploads — create dir if missing so StaticFiles doesn't crash
+    # Uploads — serve via explicit route so it isn't caught by SPA fallback in deployment
     os.makedirs(UPLOADS_DIR, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
+    from fastapi.responses import FileResponse
+
+    @app.get("/uploads/{filename}")
+    async def serve_upload(filename: str):
+        file_path = os.path.join(UPLOADS_DIR, filename)
+        if not os.path.isfile(file_path):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(file_path)
 
     # React frontend — only mount if dist exists (skipped during dev if not built yet)
     if os.path.isdir(FRONTEND_DIST):

@@ -8,11 +8,12 @@ import {
   useDeletePhoto,
   useReorderPhotos,
   useGenerateDescription,
+  useCategories,
   suggestCategory,
 } from '../lib/api'
 import { useToast } from '../components/Toast'
 import { Spinner } from '../components/ui'
-import { CATEGORIES, CONDITIONS, type Item } from '../types'
+import { CONDITIONS, type Item } from '../types'
 import {
   ArrowLeft,
   Save,
@@ -74,6 +75,7 @@ export function ItemForm() {
   const deletePhoto = useDeletePhoto(id!)
   const reorderPhotos = useReorderPhotos(id!)
   const generateDescription = useGenerateDescription(id!)
+  const { data: existingCategories = [] } = useCategories()
 
   const [form, setForm] = useState<FormData>(emptyForm)
   const [loaded, setLoaded] = useState(false)
@@ -150,26 +152,47 @@ export function ItemForm() {
     }
   }
 
+  const buildPayload = () => ({
+    title: form.title.trim(),
+    category: form.category || null,
+    condition: form.condition || null,
+    description: form.description || null,
+    dimensions: form.dimensions || null,
+    provenance: form.provenance || null,
+    estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
+    asking_price: form.asking_price ? Number(form.asking_price) : null,
+  })
+
+  // Quick-save from title bar: saves and stays on the page so the user
+  // can continue adding photos / filling in details.
+  const handleQuickSave = () => {
+    if (!form.title.trim()) {
+      toast('Title is required', 'error')
+      return
+    }
+    if (isEdit) {
+      updateItem.mutate(buildPayload(), {
+        onSuccess: () => toast('Saved', 'success'),
+        onError: (e) => toast(`Save failed: ${e.message}`, 'error'),
+      })
+    } else {
+      createItem.mutate(buildPayload(), {
+        onSuccess: (item) => {
+          toast('Item created — add photos below', 'success')
+          navigate(`/items/${item.id}/edit`, { replace: true })
+        },
+        onError: (e) => toast(`Create failed: ${e.message}`, 'error'),
+      })
+    }
+  }
+
   const handleSave = () => {
     if (!form.title.trim()) {
       toast('Title is required', 'error')
       return
     }
-    const payload = {
-      title: form.title.trim(),
-      category: form.category || null,
-      condition: form.condition || null,
-      description: form.description || null,
-      dimensions: form.dimensions || null,
-      provenance: form.provenance || null,
-      estimated_value: form.estimated_value
-        ? Number(form.estimated_value)
-        : null,
-      asking_price: form.asking_price ? Number(form.asking_price) : null,
-    }
-
     if (isEdit) {
-      updateItem.mutate(payload, {
+      updateItem.mutate(buildPayload(), {
         onSuccess: () => {
           toast('Item updated', 'success')
           navigate('/')
@@ -177,7 +200,7 @@ export function ItemForm() {
         onError: (e) => toast(`Save failed: ${e.message}`, 'error'),
       })
     } else {
-      createItem.mutate(payload, {
+      createItem.mutate(buildPayload(), {
         onSuccess: (item) => {
           toast('Item created', 'success')
           navigate(`/items/${item.id}/edit`)
@@ -276,214 +299,80 @@ export function ItemForm() {
       </div>
 
       <div className="space-y-6">
-        {/* AI Assist banner */}
-        {isEdit && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-500/15 text-teal-400">
-                <Sparkles className="size-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-ink-50">
-                  AI Description Generator
-                </p>
-                <p className="text-xs text-ink-400 mt-0.5">
-                  {canGenerate
-                    ? 'Analyze photos to auto-fill title, description, condition & category.'
-                    : 'Upload at least one photo to enable AI generation.'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleGenerate}
-              disabled={!canGenerate || generateDescription.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-teal-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-            >
-              {generateDescription.isPending ? (
-                <>
-                  <Spinner className="size-4" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="size-4" />
-                  Generate from Photos
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Main form */}
-        <div className="rounded-2xl border border-ink-800 bg-ink-850 p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-ink-200 mb-1.5">
-              Title <span className="text-rose-400">*</span>
-            </label>
+        {/* Title — first field */}
+        <div className="rounded-2xl border border-ink-800 bg-ink-850 p-6">
+          <label className="block text-sm font-medium text-ink-200 mb-1.5">
+            Title <span className="text-rose-400">*</span>
+          </label>
+          <div className="flex items-center gap-2">
             <input
               type="text"
               value={form.title}
               onChange={(e) => update('title', e.target.value)}
               onBlur={handleTitleBlur}
               placeholder="e.g. Canon AE-1 35mm Camera"
-              className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
+              className="flex-1 rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
             />
-            {clarifyQuestions.length > 0 && (
-              <div className="mt-2 rounded-lg border border-teal-500/20 bg-teal-500/5 p-3 animate-scale-in">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-teal-400">
-                    <HelpCircle className="size-3.5" />
-                    Clarify for better categorization
-                  </div>
-                  <button
-                    onClick={() => {
-                      setClarifyQuestions([])
-                      setClarifyAnswers([])
-                    }}
-                    className="text-ink-400 hover:text-ink-100 transition-colors"
-                    aria-label="Dismiss"
-                  >
-                    <X className="size-3.5" />
-                  </button>
+            <button
+              onClick={handleQuickSave}
+              disabled={createItem.isPending || updateItem.isPending}
+              title="Save and continue"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-teal-500 px-3.5 py-2.5 text-sm font-semibold text-ink-950 hover:bg-teal-400 transition-colors disabled:opacity-50 shrink-0"
+            >
+              {createItem.isPending || updateItem.isPending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <Save className="size-4" />
+              )}
+              Save
+            </button>
+          </div>
+          {clarifyQuestions.length > 0 && (
+            <div className="mt-2 rounded-lg border border-teal-500/20 bg-teal-500/5 p-3 animate-scale-in">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-teal-400">
+                  <HelpCircle className="size-3.5" />
+                  Clarify for better categorization
                 </div>
-                <div className="space-y-2">
-                  {clarifyQuestions.map((q, i) => (
-                    <div key={i}>
-                      <p className="text-xs text-ink-300 mb-1">{q}</p>
-                      <input
-                        type="text"
-                        value={clarifyAnswers[i] ?? ''}
-                        onChange={(e) => {
-                          const next = [...clarifyAnswers]
-                          next[i] = e.target.value
-                          setClarifyAnswers(next)
-                        }}
-                        placeholder="Your answer..."
-                        className="w-full rounded-md border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none transition-colors"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    onClick={handleClarifySubmit}
-                    disabled={categoryLoading}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-teal-500 px-3 py-1.5 text-xs font-semibold text-ink-950 hover:bg-teal-400 transition-colors disabled:opacity-50"
-                  >
-                    {categoryLoading && <Spinner className="size-3" />}
-                    Use this to categorize
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    setClarifyQuestions([])
+                    setClarifyAnswers([])
+                  }}
+                  className="text-ink-400 hover:text-ink-100 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <X className="size-3.5" />
+                </button>
               </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="flex items-center gap-1.5 text-sm font-medium text-ink-200 mb-1.5">
-                Category
-                {categoryLoading && <Spinner className="size-3.5 text-teal-400" />}
-              </label>
-              <select
-                value={form.category}
-                onChange={(e) => update('category', e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
-              >
-                <option value="">Select category...</option>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
+              <div className="space-y-2">
+                {clarifyQuestions.map((q, i) => (
+                  <div key={i}>
+                    <p className="text-xs text-ink-300 mb-1">{q}</p>
+                    <input
+                      type="text"
+                      value={clarifyAnswers[i] ?? ''}
+                      onChange={(e) => {
+                        const next = [...clarifyAnswers]
+                        next[i] = e.target.value
+                        setClarifyAnswers(next)
+                      }}
+                      placeholder="Your answer..."
+                      className="w-full rounded-md border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none transition-colors"
+                    />
+                  </div>
                 ))}
-              </select>
+                <button
+                  onClick={handleClarifySubmit}
+                  disabled={categoryLoading}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-teal-500 px-3 py-1.5 text-xs font-semibold text-ink-950 hover:bg-teal-400 transition-colors disabled:opacity-50"
+                >
+                  {categoryLoading && <Spinner className="size-3" />}
+                  Use this to categorize
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-ink-200 mb-1.5">
-                Condition
-              </label>
-              <select
-                value={form.condition}
-                onChange={(e) => update('condition', e.target.value)}
-                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
-              >
-                <option value="">Select condition...</option>
-                {CONDITIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-ink-200 mb-1.5">
-              Description
-            </label>
-            <textarea
-              value={form.description}
-              onChange={(e) => update('description', e.target.value)}
-              rows={5}
-              placeholder="Detailed description of the item..."
-              className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors resize-y"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-medium text-ink-200 mb-1.5">
-                Dimensions
-              </label>
-              <input
-                type="text"
-                value={form.dimensions}
-                onChange={(e) => update('dimensions', e.target.value)}
-                placeholder="e.g. 12 × 8 × 6 in"
-                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-ink-200 mb-1.5">
-                Provenance
-              </label>
-              <input
-                type="text"
-                value={form.provenance}
-                onChange={(e) => update('provenance', e.target.value)}
-                placeholder="e.g. Purchased 2019, B&H Photo"
-                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-medium text-ink-200 mb-1.5">
-                Estimated Value ($)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={form.estimated_value}
-                onChange={(e) => update('estimated_value', e.target.value)}
-                placeholder="0"
-                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-ink-200 mb-1.5">
-                Asking Price ($)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={form.asking_price}
-                onChange={(e) => update('asking_price', e.target.value)}
-                placeholder="0"
-                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors font-mono"
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Photo upload section */}
@@ -603,6 +492,156 @@ export function ItemForm() {
               No photos uploaded yet.
             </div>
           )}
+        </div>
+
+        {/* AI Assist banner — below photos for a natural workflow */}
+        {isEdit && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-500/15 text-teal-400">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-ink-50">
+                  AI Description Generator
+                </p>
+                <p className="text-xs text-ink-400 mt-0.5">
+                  {canGenerate
+                    ? 'Analyze photos to auto-fill title, description, condition & category.'
+                    : 'Upload at least one photo to enable AI generation.'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleGenerate}
+              disabled={!canGenerate || generateDescription.isPending}
+              className="inline-flex items-center gap-2 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-teal-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            >
+              {generateDescription.isPending ? (
+                <>
+                  <Spinner className="size-4" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-4" />
+                  Generate from Photos
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Main form */}
+        <div className="rounded-2xl border border-ink-800 bg-ink-850 p-6 space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-ink-200 mb-1.5">
+                Category
+                {categoryLoading && <Spinner className="size-3.5 text-teal-400" />}
+              </label>
+              <input
+                list="category-list"
+                value={form.category}
+                onChange={(e) => update('category', e.target.value)}
+                placeholder="Select or type a new category..."
+                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
+              />
+              <datalist id="category-list">
+                {existingCategories.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink-200 mb-1.5">
+                Condition
+              </label>
+              <select
+                value={form.condition}
+                onChange={(e) => update('condition', e.target.value)}
+                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
+              >
+                <option value="">Select condition...</option>
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink-200 mb-1.5">
+              Description
+            </label>
+            <textarea
+              value={form.description}
+              onChange={(e) => update('description', e.target.value)}
+              rows={5}
+              placeholder="Detailed description of the item..."
+              className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors resize-y"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium text-ink-200 mb-1.5">
+                Dimensions
+              </label>
+              <input
+                type="text"
+                value={form.dimensions}
+                onChange={(e) => update('dimensions', e.target.value)}
+                placeholder="e.g. 12 × 8 × 6 in"
+                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink-200 mb-1.5">
+                Provenance
+              </label>
+              <input
+                type="text"
+                value={form.provenance}
+                onChange={(e) => update('provenance', e.target.value)}
+                placeholder="e.g. Purchased 2019, B&H Photo"
+                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-medium text-ink-200 mb-1.5">
+                Estimated Value ($)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.estimated_value}
+                onChange={(e) => update('estimated_value', e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink-200 mb-1.5">
+                Asking Price ($)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.asking_price}
+                onChange={(e) => update('asking_price', e.target.value)}
+                placeholder="0"
+                className="w-full rounded-lg border border-ink-700 bg-ink-900 px-3.5 py-2.5 text-ink-50 placeholder:text-ink-500 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-colors font-mono"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Actions */}

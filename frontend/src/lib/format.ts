@@ -34,6 +34,8 @@ export function categoryBadgeClass(category: string | null | undefined): string 
       return 'badge-emerald'
     case 'Arts & Crafts / Hobbies':
       return 'badge-violet'
+    case 'Technology':
+      return 'badge-sky'
     case 'General':
     default:
       return 'badge-neutral'
@@ -47,6 +49,7 @@ export function conditionBadgeClass(
   switch (condition) {
     case 'New':
     case 'Like New':
+    case 'Excellent':
       return 'badge-emerald'
     case 'Good':
       return 'badge-amber'

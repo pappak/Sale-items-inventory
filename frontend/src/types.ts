@@ -15,6 +15,7 @@ export interface Item {
   provenance: string | null
   estimated_value: number | null
   asking_price: number | null
+  is_sold: boolean
   share_token: string
   photos: Photo[]
   created_at: string
@@ -47,10 +48,11 @@ export const CATEGORIES = [
   'Photography Gear',
   'Bikes',
   'Arts & Crafts / Hobbies',
+  'Technology',
   'General',
 ] as const
 
-export const CONDITIONS = ['New', 'Like New', 'Good', 'Fair', 'Poor'] as const
+export const CONDITIONS = ['New', 'Like New', 'Excellent', 'Good', 'Fair', 'Poor'] as const
 
 export type Category = (typeof CATEGORIES)[number]
 export type Condition = (typeof CONDITIONS)[number]

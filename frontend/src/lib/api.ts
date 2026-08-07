@@ -9,7 +9,14 @@ import type {
 const API = '/api'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, init)
+  const token = getAuthToken()
+  const res = await fetch(`${API}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
   if (!res.ok) {
     let message = `Request failed (${res.status})`
     try {
@@ -33,6 +40,14 @@ function jsonBody(data: unknown): RequestInit {
 }
 
 /* ---------- Items ---------- */
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: () => request<string[]>('/items/categories'),
+    staleTime: 30_000,
+  })
+}
 
 export function useItems(category?: string) {
   return useQuery({
@@ -69,6 +84,7 @@ export function useCreateItem() {
     mutationFn: (data: ItemInput) => request<Item>(`/items`, jsonBody(data)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['items'] })
+      qc.invalidateQueries({ queryKey: ['categories'] })
     },
   })
 }
@@ -85,6 +101,7 @@ export function useUpdateItem(id: string) {
     onSuccess: (updated) => {
       qc.setQueryData(['item', id], updated)
       qc.invalidateQueries({ queryKey: ['items'] })
+      qc.invalidateQueries({ queryKey: ['categories'] })
     },
   })
 }
@@ -100,6 +117,17 @@ export function useDeleteItem() {
   })
 }
 
+export function useToggleSold(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => request<unknown>(`/items/${id}/toggle-sold`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['items'] })
+      qc.invalidateQueries({ queryKey: ['item', id] })
+    },
+  })
+}
+
 /* ---------- Photos ---------- */
 
 export function useUploadPhotos(id: string) {
@@ -108,9 +136,11 @@ export function useUploadPhotos(id: string) {
     mutationFn: async (files: File[]) => {
       const form = new FormData()
       files.forEach((f) => form.append('files', f))
+      const token = getAuthToken()
       const res = await fetch(`${API}/items/${id}/photos`, {
         method: 'POST',
         body: form,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
       if (!res.ok) {
         let msg = `Upload failed (${res.status})`
@@ -245,4 +275,57 @@ export function exportPdf(
   if (id) params.set('id', id)
   if (token) params.set('token', token)
   window.open(`${API}/export/pdf?${params.toString()}`, '_blank')
+}
+
+/* ---------- Auth ---------- */
+
+const TOKEN_KEY = 'inventory_admin_token'
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setAuthToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearAuthToken() {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+export function isAuthenticated(): boolean {
+  return !!localStorage.getItem(TOKEN_KEY)
+}
+
+export async function login(password: string): Promise<string> {
+  const res = await request<{ token: string }>('/auth/login', jsonBody({ password }))
+  setAuthToken(res.token)
+  return res.token
+}
+
+export async function verifyAuth(): Promise<boolean> {
+  const token = getAuthToken()
+  if (!token) return false
+  try {
+    await fetch(`${API}/auth/verify`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return true
+  } catch {
+    clearAuthToken()
+    return false
+  }
+}
+
+/** Add auth header to a request init object */
+export function authHeaders(init?: RequestInit): RequestInit {
+  const token = getAuthToken()
+  if (!token) return init ?? {}
+  return {
+    ...init,
+    headers: {
+      ...init?.headers,
+      Authorization: `Bearer ${token}`,
+    },
+  }
 }

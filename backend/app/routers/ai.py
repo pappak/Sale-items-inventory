@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import os
 
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models.models import Item
+from backend.app.routers.auth import require_admin
 
 router = APIRouter(prefix="/items", tags=["ai"])
 
@@ -40,20 +42,22 @@ def suggest_category(body: dict):
 
     from openai import OpenAI
 
-    client = OpenAI(api_key=os.environ.get("OPENA1_OPENAI_API_KEY"))
+    OPENAI_API_KEY = os.environ.get("OPENAI_WORKSHOP_API_KEY")
+    OPENAI_BASE_URL = os.environ.get("OPENAI_WORKSHOP_BASE_URL")
+    client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5.4-mini",
         messages=[
             {
                 "role": "system",
                 "content": (
                     "You are an expert appraiser helping write secondhand sale listings. "
-                    "Available categories: Photography Gear, Bikes, Arts & Crafts / Hobbies, General.\n\n"
+                    "Available categories: Photography Gear, Bikes, Arts & Crafts / Hobbies, Technology, General.\n\n"
                     "Given an item title, do the following:\n"
                     "1. Identify the item using your knowledge (model specs, features, typical use).\n"
                     "2. If you can confidently identify it, return JSON with:\n"
-                    '   {"category": "<one of the 5 categories>", '
+                    '   {"category": "<one of the 6 categories>", '
                     '"title": "<clean precise product title>", '
                     '"description": "<3-4 sentence detailed description drawing on your knowledge '
                     "of this specific product — mention key specs, what it's known for, why "
@@ -66,7 +70,7 @@ def suggest_category(body: dict):
             },
             {"role": "user", "content": f"Item title: {title}"},
         ],
-        max_tokens=400,
+        max_completion_tokens=400,
     )
 
     raw = (response.choices[0].message.content or "").strip()
@@ -87,7 +91,7 @@ def suggest_category(body: dict):
 
 
 @router.post("/{item_id}/generate-description", response_model=DescriptionResponse)
-def generate_description(item_id: str, db: Session = Depends(get_db)):
+def generate_description(item_id: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -102,16 +106,25 @@ def generate_description(item_id: str, db: Session = Depends(get_db)):
             continue
         with open(file_path, "rb") as f:
             data = f.read()
+
+        # Resize to max 512px on longest side to keep payload small
+        try:
+            from PIL import Image as PILImage
+            img = PILImage.open(io.BytesIO(data))
+            img.thumbnail((512, 512), PILImage.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=75)
+            data = buf.getvalue()
+            mime = "image/jpeg"
+        except Exception:
+            ext = os.path.splitext(photo.filename)[1].lower()
+            mime = "image/jpeg"
+            if ext == ".png":
+                mime = "image/png"
+            elif ext == ".webp":
+                mime = "image/webp"
+
         b64 = base64.b64encode(data).decode("utf-8")
-        # Determine MIME type from extension
-        ext = os.path.splitext(photo.filename)[1].lower()
-        mime = "image/jpeg"
-        if ext == ".png":
-            mime = "image/png"
-        elif ext == ".gif":
-            mime = "image/gif"
-        elif ext == ".webp":
-            mime = "image/webp"
         images.append(f"data:{mime};base64,{b64}")
 
     if not images:
@@ -119,7 +132,10 @@ def generate_description(item_id: str, db: Session = Depends(get_db)):
 
     from openai import OpenAI
 
-    client = OpenAI(api_key=os.environ.get("OPENA1_OPENAI_API_KEY"))
+    client = OpenAI(
+        api_key=os.environ.get("OPENAI_WORKSHOP_API_KEY"),
+        base_url=os.environ.get("OPENAI_WORKSHOP_BASE_URL"),
+    )
 
     content = [
         {
@@ -128,8 +144,8 @@ def generate_description(item_id: str, db: Session = Depends(get_db)):
                 "You are helping sell secondhand items. Analyze the photos and return "
                 "ONLY valid JSON with keys: title (5-8 word concise title), description "
                 "(2-3 sentence detailed description good for auction listings), condition "
-                "(one of: New, Like New, Good, Fair, Poor), category (one of: Photography Gear, "
-                "Bikes, Arts & Crafts / Hobbies, General)"
+                "(one of: New, Like New, Excellent, Good, Fair, Poor), category (one of: Photography Gear, "
+                "Bikes, Arts & Crafts / Hobbies, Technology, General)"
             ),
         }
     ]
@@ -137,14 +153,13 @@ def generate_description(item_id: str, db: Session = Depends(get_db)):
         content.append({"type": "image_url", "image_url": {"url": img_url}})
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5.4-mini",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that generates item listings."},
             {"role": "user", "content": content},
         ],
-        max_tokens=800,
+        max_completion_tokens=800,
     )
-
     raw = response.choices[0].message.content or ""
     # Strip markdown code fences if present
     cleaned = raw.strip()

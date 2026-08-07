@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models.models import Item, ShareLink
+from backend.app.routers.auth import require_admin
 
 router = APIRouter(prefix="/export", tags=["export"])
 
@@ -131,6 +132,7 @@ def export_pdf(
     id: str | None = Query(None),
     label: str | None = Query(None),
     db: Session = Depends(get_db),
+    _: bool = Depends(require_admin),
 ):
     items: list[Item] = []
 

@@ -1,14 +1,180 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useItems, useDeleteItem } from '../lib/api'
+import { useItems, useDeleteItem, useToggleSold } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import { useToast } from '../components/Toast'
 import { CategoryBadge, ConditionBadge } from '../components/Badges'
 import { SkeletonCard, EmptyState, Spinner } from '../components/ui'
 import { formatCurrency, primaryPhoto } from '../lib/format'
-import { Package, Pencil, Trash2, Plus } from 'lucide-react'
+import { Package, Pencil, Trash2, Plus, Tag, DollarSign, CheckCircle2, Clock, LayoutGrid } from 'lucide-react'
+import type { Item } from '../types'
+
+interface ItemCardProps {
+  item: Item
+  photo: string | null
+  idx: number
+  authed: boolean
+  deleteItem: ReturnType<typeof useDeleteItem>
+  onDelete: (id: string, title: string) => void
+  toast: ReturnType<typeof useToast>
+}
+
+function ItemCard({ item, photo, idx, authed, deleteItem, onDelete, toast }: ItemCardProps) {
+  const toggleSold = useToggleSold(item.id)
+
+  const handleToggleSold = () => {
+    toggleSold.mutate(undefined, {
+      onSuccess: () =>
+        toast(item.is_sold ? `"${item.title}" marked as available` : `"${item.title}" marked as sold`, 'success'),
+      onError: (e) => toast(`Failed: ${(e as Error).message}`, 'error'),
+    })
+  }
+
+  return (
+    <div
+      className="group animate-fade-in-up rounded-2xl border border-ink-800 bg-ink-850 overflow-hidden hover:border-ink-600 transition-all hover:shadow-xl hover:shadow-black/30"
+      style={{ animationDelay: `${Math.min(idx * 40, 300)}ms` }}
+    >
+      {/* Photo with SOLD ribbon */}
+      <Link
+        to={`/items/${item.id}`}
+        className="relative block aspect-[4/3] overflow-hidden bg-ink-900"
+      >
+        {photo ? (
+          <img
+            src={photo}
+            alt={item.title}
+            className={`size-full object-cover transition-transform duration-500 group-hover:scale-105 ${item.is_sold ? 'brightness-50' : ''}`}
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center text-ink-600">
+            <Package className="size-10" />
+          </div>
+        )}
+
+        {/* SOLD diagonal banner */}
+        {item.is_sold && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+            <div
+              className="absolute w-[140%] text-center py-3 font-black tracking-[0.25em] text-white text-2xl select-none"
+              style={{
+                transform: 'rotate(-35deg)',
+                background: 'linear-gradient(135deg, #dc2626ee, #991b1bee)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+                letterSpacing: '0.3em',
+              }}
+            >
+              SOLD
+            </div>
+          </div>
+        )}
+      </Link>
+
+      {/* Body */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <Link
+            to={`/items/${item.id}`}
+            className="font-display text-lg text-ink-50 hover:text-teal-300 transition-colors line-clamp-1"
+          >
+            {item.title}
+          </Link>
+        </div>
+
+        {/* Thumbnail strip */}
+        {item.photos.length > 1 && (
+          <div className="flex gap-1.5 mb-3">
+            {item.photos
+              .slice()
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .slice(1, 5)
+              .map((p) => (
+                <div
+                  key={p.id}
+                  className="size-12 shrink-0 overflow-hidden rounded-md ring-1 ring-ink-700 bg-ink-800"
+                >
+                  <img
+                    src={p.url}
+                    alt=""
+                    className="size-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            {item.photos.length > 5 && (
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-ink-800 text-xs font-mono text-ink-400 ring-1 ring-ink-700">
+                +{item.photos.length - 5}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <CategoryBadge category={item.category} />
+          <ConditionBadge condition={item.condition} />
+          {item.is_sold && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/20 px-2 py-0.5 text-xs font-semibold text-rose-400 ring-1 ring-rose-500/40">
+              SOLD
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-ink-500 font-medium mb-0.5">
+              {item.is_sold ? 'Sold for' : 'Asking'}
+            </p>
+            <p className={`font-mono text-lg ${item.is_sold ? 'text-ink-400 line-through' : 'text-teal-300'}`}>
+              {formatCurrency(item.asking_price)}
+            </p>
+          </div>
+          {authed && (
+            <div className="flex gap-1.5">
+              <button
+                onClick={handleToggleSold}
+                disabled={toggleSold.isPending}
+                title={item.is_sold ? 'Mark as available' : 'Mark as sold'}
+                className={`flex size-9 items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
+                  item.is_sold
+                    ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30'
+                    : 'bg-ink-800 text-ink-300 hover:bg-rose-500/15 hover:text-rose-400'
+                }`}
+                aria-label={item.is_sold ? 'Mark as available' : 'Mark as sold'}
+              >
+                {toggleSold.isPending ? <Spinner className="size-4" /> : <Tag className="size-4" />}
+              </button>
+              <Link
+                to={`/items/${item.id}/edit`}
+                className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-50 transition-colors"
+                aria-label={`Edit ${item.title}`}
+              >
+                <Pencil className="size-4" />
+              </Link>
+              <button
+                onClick={() => onDelete(item.id, item.title)}
+                disabled={deleteItem.isPending}
+                className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-rose-500/15 hover:text-rose-400 transition-colors disabled:opacity-50"
+                aria-label={`Delete ${item.title}`}
+              >
+                {deleteItem.isPending && deleteItem.variables === item.id ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<string>('All')
+  const { authed } = useAuth()
   // Always fetch all items; filter + derive tabs client-side
   const { data: allItems, isLoading, isError } = useItems()
   const deleteItem = useDeleteItem()
@@ -35,20 +201,69 @@ export function Dashboard() {
     })
   }
 
+  // Admin stats — computed from all items
+  const stats = useMemo(() => {
+    const all = allItems ?? []
+    const available = all.filter(i => !i.is_sold)
+    const sold = all.filter(i => i.is_sold)
+    const totalAsking = available.reduce((sum, i) => sum + (i.asking_price ?? 0), 0)
+    const totalEstimated = all.reduce((sum, i) => sum + (i.estimated_value ?? 0), 0)
+    const totalSoldValue = sold.reduce((sum, i) => sum + (i.asking_price ?? 0), 0)
+    const categories = new Set(all.map(i => i.category).filter(Boolean)).size
+    return { total: all.length, available: available.length, sold: sold.length, totalAsking, totalEstimated, totalSoldValue, categories }
+  }, [allItems])
+
   return (
     <div className="animate-fade-in">
-      {/* Page heading */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl text-ink-50 mb-1.5">
-            Your Inventory
-          </h1>
-          <p className="text-ink-400">
-            {allItems?.length ?? 0} item{(allItems?.length ?? 0) === 1 ? '' : 's'} in
-            your catalog
-          </p>
+      {/* Stats panel */}
+      {!isLoading && (allItems?.length ?? 0) > 0 && (
+        <div className="mb-8 grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="rounded-xl border border-ink-800 bg-ink-850 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
+              <LayoutGrid className="size-3.5" />
+              Total Items
+            </div>
+            <p className="text-2xl font-bold text-ink-50">{stats.total}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{stats.categories} categor{stats.categories === 1 ? 'y' : 'ies'}</p>
+          </div>
+
+          <div className="rounded-xl border border-ink-800 bg-ink-850 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
+              <Clock className="size-3.5" />
+              Available
+            </div>
+            <p className="text-2xl font-bold text-teal-400">{stats.available}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{formatCurrency(stats.totalAsking)} asking</p>
+          </div>
+
+          <div className="rounded-xl border border-ink-800 bg-ink-850 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
+              <CheckCircle2 className="size-3.5" />
+              Sold
+            </div>
+            <p className="text-2xl font-bold text-rose-400">{stats.sold}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{formatCurrency(stats.totalSoldValue)} total</p>
+          </div>
+
+          <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
+            <div className="flex items-center gap-2 text-teal-400 text-xs font-medium uppercase tracking-wider mb-2">
+              <DollarSign className="size-3.5" />
+              Est. Value
+            </div>
+            <p className="text-2xl font-bold text-teal-300">{formatCurrency(stats.totalEstimated)}</p>
+            <p className="text-xs text-ink-500 mt-0.5">across all items</p>
+          </div>
+
+          <div className="rounded-xl border border-ink-800 bg-ink-850 p-4">
+            <div className="flex items-center gap-2 text-ink-400 text-xs font-medium uppercase tracking-wider mb-2">
+              <Tag className="size-3.5" />
+              Asking Price
+            </div>
+            <p className="text-2xl font-bold text-ink-50">{formatCurrency(stats.totalAsking)}</p>
+            <p className="text-xs text-ink-500 mt-0.5">asking price total</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Category tabs */}
       <div className="mb-8 flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
@@ -85,84 +300,16 @@ export function Dashboard() {
           {items.map((item, idx) => {
             const photo = primaryPhoto(item.photos)
             return (
-              <div
+              <ItemCard
                 key={item.id}
-                className="group animate-fade-in-up rounded-2xl border border-ink-800 bg-ink-850 overflow-hidden hover:border-ink-600 transition-all hover:shadow-xl hover:shadow-black/30"
-                style={{ animationDelay: `${Math.min(idx * 40, 300)}ms` }}
-              >
-                {/* Photo */}
-                <Link
-                  to={`/items/${item.id}/edit`}
-                  className="relative block aspect-[4/3] overflow-hidden bg-ink-900"
-                >
-                  {photo ? (
-                    <img
-                      src={photo}
-                      alt={item.title}
-                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex size-full items-center justify-center text-ink-600">
-                      <Package className="size-10" />
-                    </div>
-                  )}
-                  {item.photos.length > 1 && (
-                    <div className="absolute top-2.5 right-2.5 rounded-md bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs text-ink-100 font-mono">
-                      {item.photos.length} photos
-                    </div>
-                  )}
-                </Link>
-
-                {/* Body */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <Link
-                      to={`/items/${item.id}/edit`}
-                      className="font-display text-lg text-ink-50 hover:text-teal-300 transition-colors line-clamp-1"
-                    >
-                      {item.title}
-                    </Link>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    <CategoryBadge category={item.category} />
-                    <ConditionBadge condition={item.condition} />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-ink-500 font-medium mb-0.5">
-                        Asking
-                      </p>
-                      <p className="font-mono text-lg text-teal-300">
-                        {formatCurrency(item.asking_price)}
-                      </p>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <Link
-                        to={`/items/${item.id}/edit`}
-                        className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-50 transition-colors"
-                        aria-label={`Edit ${item.title}`}
-                      >
-                        <Pencil className="size-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(item.id, item.title)}
-                        disabled={deleteItem.isPending}
-                        className="flex size-9 items-center justify-center rounded-lg bg-ink-800 text-ink-300 hover:bg-rose-500/15 hover:text-rose-400 transition-colors disabled:opacity-50"
-                        aria-label={`Delete ${item.title}`}
-                      >
-                        {deleteItem.isPending && deleteItem.variables === item.id ? (
-                          <Spinner className="size-4" />
-                        ) : (
-                          <Trash2 className="size-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                item={item}
+                photo={photo}
+                idx={idx}
+                authed={authed}
+                deleteItem={deleteItem}
+                onDelete={handleDelete}
+                toast={toast}
+              />
             )
           })}
         </div>
@@ -176,13 +323,15 @@ export function Dashboard() {
               : `No items in the "${activeTab}" category yet.`
           }
           action={
-            <Link
-              to="/items/new"
-              className="inline-flex items-center gap-2 rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-ink-950 hover:bg-teal-400 transition-colors"
-            >
-              <Plus className="size-4" />
-              Add Your First Item
-            </Link>
+            authed ? (
+              <Link
+                to="/items/new"
+                className="inline-flex items-center gap-2 rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-ink-950 hover:bg-teal-400 transition-colors"
+              >
+                <Plus className="size-4" />
+                Add Your First Item
+              </Link>
+            ) : undefined
           }
         />
       )}

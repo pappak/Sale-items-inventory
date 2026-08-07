@@ -1,0 +1,22 @@
+[
+  {
+    "content": "[ui-1] Move thumbnails from overlaid on photo to card body between title and badges",
+    "id": "ui-1",
+    "status": "completed"
+  },
+  {
+    "content": "[auth-1] Add login endpoint to backend with password check",
+    "id": "auth-1",
+    "status": "completed"
+  },
+  {
+    "content": "[auth-2] Add LoginPage component and protect admin routes",
+    "id": "auth-2",
+    "status": "completed"
+  },
+  {
+    "content": "[ui-2] Publish mode - hide edit/delete buttons on published app",
+    "id": "ui-2",
+    "status": "completed"
+  }
+]

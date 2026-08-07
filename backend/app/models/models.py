@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKey, String, Text, Numeric, DateTime, Integer
+from sqlalchemy import ForeignKey, String, Text, Numeric, DateTime, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.database import Base
@@ -24,6 +24,7 @@ class Item(Base):
     estimated_value: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     asking_price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     share_token: Mapped[str] = mapped_column(String(36), unique=True, default=lambda: str(uuid.uuid4()))
+    is_sold: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
 

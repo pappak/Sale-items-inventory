@@ -40,24 +40,43 @@ export function PhotoGallery({
     <>
       <div className="space-y-3">
         {/* Main image */}
-        <button
-          onClick={() => setZoomed(true)}
-          className="group relative block w-full aspect-[4/3] overflow-hidden rounded-xl bg-ink-900 border border-ink-800"
-          aria-label={`Zoom ${title} photo ${activeIdx + 1}`}
-        >
-          <img
-            src={sorted[activeIdx].url}
-            alt={`${title} — photo ${activeIdx + 1}`}
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="group relative block w-full aspect-[4/3] overflow-hidden rounded-xl bg-ink-900 border border-ink-800">
+          <button
+            onClick={() => setZoomed(true)}
+            className="absolute inset-0 w-full h-full"
+            aria-label={`Zoom ${title} photo ${activeIdx + 1}`}
+          >
+            <img
+              src={sorted[activeIdx].url}
+              alt={`${title} — photo ${activeIdx + 1}`}
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+
           {sorted.length > 1 && (
-            <div className="absolute bottom-3 right-3 rounded-lg bg-black/60 backdrop-blur-sm px-2.5 py-1 text-xs text-ink-100 font-mono">
-              {activeIdx + 1} / {sorted.length}
-            </div>
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); prev() }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 hover:bg-black/70 transition-all"
+                aria-label="Previous photo"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); next() }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 hover:bg-black/70 transition-all"
+                aria-label="Next photo"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+              <div className="absolute bottom-3 right-3 rounded-lg bg-black/60 backdrop-blur-sm px-2.5 py-1 text-xs text-ink-100 font-mono">
+                {activeIdx + 1} / {sorted.length}
+              </div>
+            </>
           )}
-        </button>
+        </div>
 
         {/* Thumbnails */}
         {sorted.length > 1 && (

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models.models import Item, ItemPhoto
+from backend.app.routers.auth import require_admin
 
 router = APIRouter(prefix="/items", tags=["photos"])
 
@@ -35,6 +36,7 @@ def upload_photos(
     item_id: str,
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
+    _: bool = Depends(require_admin),
 ):
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
@@ -66,7 +68,7 @@ def upload_photos(
 
 
 @router.delete("/{item_id}/photos/{photo_id}", status_code=204)
-def delete_photo(item_id: str, photo_id: str, db: Session = Depends(get_db)):
+def delete_photo(item_id: str, photo_id: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     photo = (
         db.query(ItemPhoto)
         .filter(ItemPhoto.id == photo_id, ItemPhoto.item_id == item_id)
@@ -89,6 +91,7 @@ def reorder_photos(
     item_id: str,
     photo_ids: List[str] = Body(..., embed=False),
     db: Session = Depends(get_db),
+    _: bool = Depends(require_admin),
 ):
     """Accepts an ordered list of photo IDs and updates sort_order accordingly."""
     for idx, photo_id in enumerate(photo_ids):

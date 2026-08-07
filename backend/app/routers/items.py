@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models.models import Item, ItemPhoto
+from backend.app.routers.auth import require_admin
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -31,6 +32,7 @@ class ItemUpdate(BaseModel):
     provenance: str | None = None
     estimated_value: float | None = None
     asking_price: float | None = None
+    is_sold: bool | None = None
 
 
 class PhotoOut(BaseModel):
@@ -53,6 +55,7 @@ class ItemOut(BaseModel):
     provenance: str | None = None
     estimated_value: float | None = None
     asking_price: float | None = None
+    is_sold: bool = False
     share_token: str
     created_at: datetime
     updated_at: datetime
@@ -60,6 +63,14 @@ class ItemOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+@router.get("/categories", response_model=List[str])
+def list_categories(db: Session = Depends(get_db)):
+    from sqlalchemy import distinct
+    rows = db.query(distinct(Item.category)).filter(Item.category.isnot(None), Item.category != '').all()
+    cats = sorted([r[0] for r in rows])
+    return cats
 
 
 @router.get("", response_model=List[ItemOut])
@@ -80,7 +91,7 @@ def get_item(item_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=ItemOut, status_code=201)
-def create_item(body: ItemCreate, db: Session = Depends(get_db)):
+def create_item(body: ItemCreate, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     item = Item(**body.model_dump())
     db.add(item)
     db.commit()
@@ -89,7 +100,7 @@ def create_item(body: ItemCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{item_id}", response_model=ItemOut)
-def update_item(item_id: str, body: ItemUpdate, db: Session = Depends(get_db)):
+def update_item(item_id: str, body: ItemUpdate, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -101,7 +112,7 @@ def update_item(item_id: str, body: ItemUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{item_id}", status_code=204)
-def delete_item(item_id: str, db: Session = Depends(get_db)):
+def delete_item(item_id: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -114,3 +125,14 @@ def delete_item(item_id: str, db: Session = Depends(get_db)):
     db.delete(item)
     db.commit()
     return None
+
+
+@router.post("/{item_id}/toggle-sold", response_model=ItemOut)
+def toggle_sold(item_id: str, db: Session = Depends(get_db), _: bool = Depends(require_admin)):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item.is_sold = not item.is_sold
+    db.commit()
+    db.refresh(item)
+    return item

@@ -14,12 +14,27 @@ _SessionLocal = None
 def get_engine():
     global _engine
     if _engine is None:
+        # Prefer the project-specific connector prefix, then fall back to any match
         raw_url = (
-            os.environ.get("DBB7196801_DATABASE_URL")
-            or os.environ.get("DBB7196801_DIRECT_URL")
+            os.environ.get("DBFA8B5DAA_DIRECT_URL")
+            or os.environ.get("DBFA8B5DAA_DATABASE_URL")
         )
         if not raw_url:
-            raise RuntimeError("DBB7196801_DATABASE_URL environment variable is not set")
+            # Fallback: search for any connector (handles fresh projects with different prefix)
+            for key, val in os.environ.items():
+                if key.endswith("_DIRECT_URL") and val:
+                    raw_url = val
+                    break
+        if not raw_url:
+            for key, val in os.environ.items():
+                if key.endswith("_DATABASE_URL") and val:
+                    raw_url = val
+                    break
+        if not raw_url:
+            raise RuntimeError(
+                "No database environment variable found. "
+                "Set up a Neon Postgres connector or provide *_DATABASE_URL."
+            )
 
         # Normalise to postgresql:// for urlparse
         url = raw_url
