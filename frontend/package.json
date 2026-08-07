@@ -2,7 +2,7 @@
   "name": "frontend",
   "private": true,
   "version": "1.0.0",
-  "buildNumber": 5,
+  "buildNumber": 6,
   "type": "module",
   "scripts": {
     "dev": "vite",

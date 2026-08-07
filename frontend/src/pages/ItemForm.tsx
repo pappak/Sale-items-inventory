@@ -224,9 +224,41 @@ export function ItemForm() {
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragActive(true) }
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragActive(false) }
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setIsDragActive(false)
-    doUpload(Array.from(e.dataTransfer.files))
+
+    // Collect files from dataTransfer — handles both native file drags and
+    // browser-based drags (e.g. iCloud Photos web, Windows Explorer, Finder)
+    const files: File[] = []
+
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      for (const item of Array.from(e.dataTransfer.items)) {
+        if (item.kind === 'file') {
+          const f = item.getAsFile()
+          if (f) files.push(f)
+        } else if (item.kind === 'string' && item.type === 'text/uri-list') {
+          // URL drop (e.g. dragging an image from iCloud Photos web UI)
+          const url: string = await new Promise(res => item.getAsString(res))
+          const urls = url.split('\n').map(u => u.trim()).filter(u => u && !u.startsWith('#'))
+          for (const imgUrl of urls) {
+            try {
+              const resp = await fetch(imgUrl)
+              if (!resp.ok) continue
+              const blob = await resp.blob()
+              const name = imgUrl.split('/').pop()?.split('?')[0] || 'photo.jpg'
+              files.push(new File([blob], name, { type: blob.type || 'image/jpeg' }))
+            } catch { /* skip unfetchable URLs */ }
+          }
+        }
+      }
+    }
+
+    // Fallback to dataTransfer.files
+    if (files.length === 0 && e.dataTransfer.files.length > 0) {
+      files.push(...Array.from(e.dataTransfer.files))
+    }
+
+    doUpload(files)
   }
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     doUpload(Array.from(e.target.files ?? []))
@@ -425,7 +457,7 @@ export function ItemForm() {
               <p className="text-xs text-ink-500">
                 {!id
                   ? 'Save the item first to enable uploads'
-                  : 'JPG, PNG, WebP — multiple files OK'}
+                  : 'JPG, PNG, WebP · multiple files · drag from iCloud or Explorer'}
               </p>
             </div>
           </div>

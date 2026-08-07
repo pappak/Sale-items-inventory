@@ -17,16 +17,16 @@
   {
     "content": "Run backfill: copy existing disk files into DB bytea column",
     "id": "4",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Update frontend URLs from /uploads/<filename> to /api/photos/<id>",
     "id": "5",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Verify photos load, bump build number, commit and push",
     "id": "6",
-    "status": "pending"
+    "status": "completed"
   }
 ]
