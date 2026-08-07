@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Add data BYTEA + mime_type columns to item_photos via init_db DDL",
+    "id": "1",
+    "status": "completed"
+  },
+  {
+    "content": "Rewrite photos.py: upload writes bytes to DB, serve route reads from DB, delete cleans DB only",
+    "id": "2",
+    "status": "completed"
+  },
+  {
+    "content": "Add /api/photos/{photo_id} serve route in main.py, remove disk serve + makedirs",
+    "id": "3",
+    "status": "completed"
+  },
+  {
+    "content": "Run backfill: copy existing disk files into DB bytea column",
+    "id": "4",
+    "status": "in_progress"
+  },
+  {
+    "content": "Update frontend URLs from /uploads/<filename> to /api/photos/<id>",
+    "id": "5",
+    "status": "pending"
+  },
+  {
+    "content": "Verify photos load, bump build number, commit and push",
+    "id": "6",
+    "status": "pending"
+  }
+]

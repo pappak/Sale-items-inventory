@@ -21,7 +21,6 @@ export default defineConfig(({ mode }) => {
       port: env.APP_PORT ? parseInt(env.APP_PORT) : 3000,
       proxy: {
         '/api': `http://localhost:${backendPort}`,
-        '/uploads': `http://localhost:${backendPort}`,
       },
     },
   }

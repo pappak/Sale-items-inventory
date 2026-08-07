@@ -42,6 +42,8 @@ class ItemPhoto(Base):
     url: Mapped[str] = mapped_column(String, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    data: Mapped[bytes | None] = mapped_column(nullable=True)
+    mime_type: Mapped[str] = mapped_column(String, nullable=False, server_default="application/octet-stream")
 
     item: Mapped["Item"] = relationship("Item", back_populates="photos")
 

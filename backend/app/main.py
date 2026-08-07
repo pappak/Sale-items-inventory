@@ -9,7 +9,6 @@ from backend.app.routers import items, photos, ai, share, export, auth
 
 # Resolve absolute paths relative to this file so they work regardless of cwd
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
 
 
@@ -17,7 +16,16 @@ def init_db():
     try:
         from backend.app.database import get_engine, Base
         from backend.app.models import models  # noqa: ensure models are registered
-        Base.metadata.create_all(bind=get_engine())
+        engine = get_engine()
+        Base.metadata.create_all(bind=engine)
+        # Add bytea columns if upgrading from filesystem-based storage
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE item_photos "
+                "ADD COLUMN IF NOT EXISTS data BYTEA, "
+                "ADD COLUMN IF NOT EXISTS mime_type TEXT NOT NULL DEFAULT 'application/octet-stream'"
+            ))
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"DB init skipped: {e}")
@@ -43,6 +51,7 @@ def create_app() -> FastAPI:
     # API routers
     app.include_router(items.router, prefix="/api")
     app.include_router(photos.router, prefix="/api")
+    app.include_router(photos.make_photo_router(), prefix="/api")
     app.include_router(ai.router, prefix="/api")
     app.include_router(share.router, prefix="/api")
     app.include_router(export.router, prefix="/api")
@@ -64,19 +73,6 @@ def create_app() -> FastAPI:
             status["error"] = str(e)
             status["status"] = "degraded"
         return status
-
-    # Uploads — serve via explicit route so it isn't caught by SPA fallback in deployment
-    os.makedirs(UPLOADS_DIR, exist_ok=True)
-
-    from fastapi.responses import FileResponse
-
-    @app.get("/uploads/{filename}")
-    async def serve_upload(filename: str):
-        file_path = os.path.join(UPLOADS_DIR, filename)
-        if not os.path.isfile(file_path):
-            from fastapi import HTTPException
-            raise HTTPException(status_code=404, detail="File not found")
-        return FileResponse(file_path)
 
     # React frontend — only mount if dist exists (skipped during dev if not built yet)
     if os.path.isdir(FRONTEND_DIST):
